@@ -7,7 +7,7 @@ BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/_DATA/RESULTS'
 
 TOTAL_RESULTS = dict()
 
-class Read_results:
+class ReadResults:
     def __init__(self, path: str, data: dict = {}):
         self.path = path
         self.data = data
@@ -18,7 +18,7 @@ class Read_results:
         Create a discount volume from production
         """
         discount = [(1/pow(1+0.14, year)) for year in range(25)]
-        return discount
+        return [(ls[i]*discount[i]) for i in range(len(discount))]
 
     def read_path(self, all_dirs: set = set()) -> list:
         """
@@ -36,6 +36,8 @@ class Read_results:
         
         for name in file_names:
             with open(f"{BASE_RESULT_DIR}/{name}/result.log", 'r', encoding='utf-8') as file:
+                count = 0
+                temp_res = [None for _ in range(25)]
                 temp_data = []
                 for line in file:
                     if 'TGP=' in line:
@@ -46,16 +48,15 @@ class Read_results:
                 for num in range(1, len(temp_data)):
                     temp_data[-num] = (temp_data[-num]-temp_data[-num-1])
 
-                temp_res = [None for _ in range(25)]
-                count = 0
                 for num in range(1, len(temp_data)-1, 12):
                     temp_res[count] = sum(temp_data[num:num+12])
                     count += 1
 
-                self.data.setdefault(name, {}).setdefault('GAS', temp_res)
+                self.data.setdefault(name, {}).setdefault('GAS', self.discount_volume(temp_res))
 
-test = Read_results(BASE_RESULT_DIR)
+test = ReadResults(BASE_RESULT_DIR)
 test.read_file()
+print(test.data.keys())
 
 for key, value in test.data.items():
     print(f"{key} === {sum(value['GAS'])} === {len(value['GAS'])}", sep='\n')

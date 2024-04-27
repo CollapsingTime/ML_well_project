@@ -1,6 +1,6 @@
 # ML_well_project
 
-1. Create a discount function
+1. Create a discount function - DONE
 2. Data visualize
 3. Create an OOP in both files
 4. Create a structure for DB (PostgreSQL)

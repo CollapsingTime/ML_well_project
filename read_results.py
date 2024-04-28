@@ -1,5 +1,3 @@
-import shutil
-import time
 import os
 
 # Put in your RESULT directory
@@ -11,6 +9,10 @@ class ReadResults:
     def __init__(self, path: str, data: dict = {}):
         self.path = path
         self.data = data
+
+    @property
+    def get_data(self):
+        return self.data
 
     @staticmethod
     def discount_volume(ls: list = None) -> list:
@@ -26,7 +28,7 @@ class ReadResults:
         """
         for root, dirs, files in os.walk(self.path):
             all_dirs.update(dirs)
-        return sorted(list(all_dirs))
+        return sorted(all_dirs)
     
     def read_file(self, file_names: list = None) -> list:
         """
@@ -56,7 +58,8 @@ class ReadResults:
 
 test = ReadResults(BASE_RESULT_DIR)
 test.read_file()
-print(test.data.keys())
 
-for key, value in test.data.items():
-    print(f"{key} === {sum(value['GAS'])} === {len(value['GAS'])}", sep='\n')
+print(test.get_data.keys())
+
+# for key, value in test.data.items():
+#     print(f"{key} === {sum(value['GAS'])} === {len(value['GAS'])}", sep='\n')

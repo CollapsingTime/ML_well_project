@@ -2,6 +2,7 @@ import shutil
 import json
 import os
 
+# Static data from OS and directories for fill info in files
 PVT_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/PVT'
 SCH_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/SCH'
 STATIC_DATA = {
@@ -15,16 +16,25 @@ STATIC_DATA = {
     "C5_plus": [0, 100, 200, 300, 400],
 }
 class GenerateInfoForModels:
+    """
+    Generate info for DATA files
+    """
     def __init__(self, data: dict = {}):
         self.data = data
 
     def create_PVT_path(self):
+        """
+        Find PVT path for new models
+        """
         self.data['PVT_path'] = {}
         for root, dirs, files in os.walk(PVT_PATH):
             for name in files:
                 self.data['PVT_path'].setdefault(name, f"{root}/{name}")
 
     def create_SCH_path(self):
+        """
+        Find SCH path for new models
+        """
         self.data['SCH_path'] = {}
         for root, dirs, files in os.walk(SCH_PATH):
             for name in files:
@@ -53,17 +63,31 @@ class GenerateInfoForModels:
         self.data['J'] = [int(num/100) for num in self.data['Y_axis']]
 
     def calculate_volume(self):
+        """
+        Calculate models volume
+        """
         self.data['VOLUME'] = []
         for num in range(len(self.data['X_axis'])):
             self.data['VOLUME'].append(self.data['I'][num] * self.data['J'][num] * self.data['LAYERS'])
 
+    def generate_info(self):
+        """
+        Calculate and fill all data in object
+        """
+        methods = {
+            "func1": self.create_PVT_path(),
+            "func2": self.create_SCH_path(),
+            "func3": self.calculate_NTG(),
+            "func4": self.calculate_axes(),
+            "func5": self.calculate_volume()
+        }
+        for value in methods.values():
+            value
+
 test = GenerateInfoForModels(STATIC_DATA)
-test.create_PVT_path()
-test.create_SCH_path()
-test.calculate_NTG()
-test.calculate_axes()
-test.calculate_volume()
+test.generate_info()
 print(test.data) 
+
 
 
 

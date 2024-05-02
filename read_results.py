@@ -22,6 +22,13 @@ class ReadResults:
         discount = [(1/pow(1+0.14, year)) for year in range(25)]
         return [(ls[i]*discount[i]) for i in range(len(discount))]
 
+    @staticmethod
+    def calc_time_working(ls: list = None):
+        """
+        Calculate period of working time
+        """
+        return len(list(filter(lambda x: x > 0, ls)))
+
     def read_path(self, all_dirs: set = set()) -> list:
         """
         Function pick up and collect all files name in directory
@@ -54,12 +61,12 @@ class ReadResults:
                     temp_res[count] = sum(temp_data[num:num+12])
                     count += 1
 
-                self.data.setdefault(name, {}).setdefault('GAS', self.discount_volume(temp_res))
+                self.data.setdefault(name, {'GAS': self.discount_volume(temp_res)})
 
 test = ReadResults(BASE_RESULT_DIR)
 test.read_file()
 
 print(test.get_data.keys())
 
-# for key, value in test.data.items():
-#     print(f"{key} === {sum(value['GAS'])} === {len(value['GAS'])}", sep='\n')
+for key, value in test.data.items():
+    print(f"{key} === {sum(value['GAS'])} === {test.calc_time_working(value['GAS'])}", sep='\n')

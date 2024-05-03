@@ -1,8 +1,11 @@
 import shutil
 import json
 import os
+import itertools
+import json
 
 # Static data from OS and directories for fill info in files
+BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/'
 PVT_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/PVT'
 SCH_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/SCH'
 STATIC_DATA = {
@@ -19,60 +22,61 @@ class GenerateInfoForModels:
     """
     Generate info for DATA files
     """
-    def __init__(self, data: dict = {}):
-        self.data = data
+    def __init__(self, static_data: dict = {}, dynamic_data: dict = {}):
+        self.st_data = static_data
+        self.dyn_data = dynamic_data
 
     def create_PVT_path(self):
         """
         Find PVT path for new models
         """
-        self.data['PVT_path'] = {}
+        self.st_data['PVT_path'] = {}
         for root, dirs, files in os.walk(PVT_PATH):
             for name in files:
-                self.data['PVT_path'].setdefault(name, f"{root}/{name}")
+                self.st_data['PVT_path'].setdefault(name, f"{root}/{name}")
 
     def create_SCH_path(self):
         """
         Find SCH path for new models
         """
-        self.data['SCH_path'] = {}
+        self.st_data['SCH_path'] = {}
         for root, dirs, files in os.walk(SCH_PATH):
             for name in files:
-                self.data['SCH_path'].setdefault(name, f"{root}/{name}")
+                self.st_data['SCH_path'].setdefault(name, f"{root}/{name}")
 
     def calculate_NTG(self):
         """
         Calculate NTG for new models
         """
-        self.data["NTG"] = [round(i/(self.data['LAYERS']*self.data['Z']), 5) for i in self.data['H']]
+        self.st_data["NTG"] = [round(i/(self.st_data['LAYERS']*self.st_data['Z']), 5) for i in self.st_data['H']]
 
     def calculate_axes(self):
         """
         Calculate dimensional for new models
         """
-        self.data['X_axis'] = [(self.data['BASE_X']*2+i) for i in self.data['L']]
-        self.data['Y_axis'] = []
+        self.st_data['X_axis'] = [(self.st_data['BASE_X']*2+i) for i in self.st_data['L']]
+        self.st_data['Y_axis'] = []
 
-        for num in (self.data['X_axis']):
-            if num == self.data['X_axis'][0]:
-                self.data['Y_axis'].append(int(num/1.7))
+        for num in (self.st_data['X_axis']):
+            if num == self.st_data['X_axis'][0]:
+                self.st_data['Y_axis'].append(int(num/1.7))
             else:
-                self.data['Y_axis'].append(((int(num/1.7)//100)+1)*100)
+                self.st_data['Y_axis'].append(((int(num/1.7)//100)+1)*100)
 
-        self.data['I'] = [int(num/100) for num in self.data['X_axis']]
-        self.data['J'] = [int(num/100) for num in self.data['Y_axis']]
+        self.st_data['I'] = [int(num/100) for num in self.st_data['X_axis']]
+        self.st_data['J'] = [int(num/100) for num in self.st_data['Y_axis']]
 
     def calculate_volume(self):
         """
         Calculate models volume
         """
-        self.data['VOLUME'] = []
-        for num in range(len(self.data['X_axis'])):
-            self.data['VOLUME'].append(self.data['I'][num] * self.data['J'][num] * self.data['LAYERS'])
+        self.st_data['VOLUME'] = []
+        for num in range(len(self.st_data['X_axis'])):
+            self.st_data['VOLUME'].append(self.st_data['I'][num] * self.st_data['J'][num] * self.st_data['LAYERS'])
 
     def generate_info(self):
         """
-        Calculate and fill all data in object
+        Call all functions for fill info about realisations
         """
         methods = {
             "func1": self.create_PVT_path(),
@@ -84,71 +88,70 @@ class GenerateInfoForModels:
         for value in methods.values():
             value
 
+    def generate_data_files(self):
+        """
+        Create text file with all realisations data
+        """
+        item = itertools.count(1)
+        for perm, thick, len, c5 in itertools.product(self.st_data['PERM'],
+                                                      self.st_data['H'],
+                                                      self.st_data['L'],
+                                                      self.st_data['C5_plus']):
+            num = next(item)
+            match len:
+                case 500:
+                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][0],
+                                                   'J': self.st_data['J'][0],
+                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                                                   'PERM': perm,
+                                                   'H': thick,
+                                                   'L': len,
+                                                   'C5_plus': c5})
+                case 1000:
+                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][1],
+                                                   'J': self.st_data['J'][1],
+                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                                                   'PERM': perm,
+                                                   'H': thick,
+                                                   'L': len,
+                                                   'C5_plus': c5})
+                case 1500:
+                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][2],
+                                                   'J': self.st_data['J'][2],
+                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                                                   'PERM': perm,
+                                                   'H': thick,
+                                                   'L': len,
+                                                   'C5_plus': c5})
+                case 2000:
+                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][3],
+                                                   'J': self.st_data['J'][3],
+                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                                                   'PERM': perm,
+                                                   'H': thick,
+                                                   'L': len,
+                                                   'C5_plus': c5})
+                case 2500:
+                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][4],
+                                                   'J': self.st_data['J'][4],
+                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                                                   'PERM': perm,
+                                                   'H': thick,
+                                                   'L': len,
+                                                   'C5_plus': c5})
+
+        with open(f'{BASE_RESULT_DIR}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
+            file.write(json.dumps(self.dyn_data, indent=4))
+
 test = GenerateInfoForModels(STATIC_DATA)
 test.generate_info()
-print(test.data) 
-
-
-
-
-# BASE_DIR = "E:\ml_models\ALL_CASES\\base_case_100.data"
-
-# # All realisations for create new models
-# ALL_REALISATIONS = dict()
-# count = 1
-# for perm in K_PERM:
-#     for thick in H:
-#         for length in L:
-#             for c5 in C5_plus:
-#                 match length:
-#                     case 500:
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('I', I[0])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('J', J[0])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('Well_path', temp_path_SCH[f"MODEL_SCHEDULE_{length}.inc"])
-#                     case 1000:
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('I', I[1])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('J', J[1])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('Well_path', temp_path_SCH[f"MODEL_SCHEDULE_{length}.inc"])
-#                     case 1500:
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('I', I[2])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('J', J[2])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('Well_path', temp_path_SCH[f"MODEL_SCHEDULE_{length}.inc"])
-#                     case 2000:
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('I', I[3])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('J', J[3])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('Well_path', temp_path_SCH[f"MODEL_SCHEDULE_{length}.inc"])
-#                     case 2500:
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('I', I[4])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('J', J[4])
-#                         ALL_REALISATIONS.setdefault(count, {}).setdefault('Well_path', temp_path_SCH[f"MODEL_SCHEDULE_{length}.inc"])
-#                 ALL_REALISATIONS.setdefault(count, {}).setdefault('PERM', perm)
-#                 ALL_REALISATIONS.setdefault(count, {}).setdefault('H', thick)
-#                 ALL_REALISATIONS.setdefault(count, {}).setdefault('L', length)
-#                 ALL_REALISATIONS.setdefault(count, {}).setdefault('C5+', c5)
-#                 ALL_REALISATIONS.setdefault(count, {}).setdefault('NTG', (thick/32))
-#                 count += 1
-
-# # add file path with PROPS PVT to ALLREALISATIONS
-# for case, value in ALL_REALISATIONS.items():
-#     match value['C5+']:
-#         case 0:
-#             value['C5+_path'] = temp_path_PVT[f"MODEL_PROPS_{value['C5+']}.inc"]
-#         case 100:
-#             value['C5+_path'] = temp_path_PVT[f"MODEL_PROPS_{value['C5+']}.inc"]
-#         case 200:
-#             value['C5+_path'] = temp_path_PVT[f"MODEL_PROPS_{value['C5+']}.inc"]
-#         case 300:
-#             value['C5+_path'] = temp_path_PVT[f"MODEL_PROPS_{value['C5+']}.inc"]
-#         case 400:
-#             value['C5+_path'] = temp_path_PVT[f"MODEL_PROPS_{value['C5+']}.inc"]
-
-# # Create a file for info from dict
-# with open('CREATE_GDM/data_from_realisations.txt', 'w', encoding='utf-8') as file:
-#     file.write(json.dumps(ALL_REALISATIONS, indent=4))
-
-# # Create a file copy
-# shutil.copy(BASE_DIR, f"E:\ml_models\ALL_CASES\CASES\\test_temp.data")
-# shutil.copy(BASE_DIR, f"E:\ml_models\ALL_CASES\CASES\\test.data")
+test.generate_data_files()
+# print(test.data) 
 
 # # Replace all needed info in new file
 # with open("E:\ml_models\ALL_CASES\CASES\\test_temp.data", 'r', encoding='utf-8') as file_temp:

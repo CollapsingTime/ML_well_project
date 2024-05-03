@@ -23,7 +23,7 @@ class ReadResults:
         return [(ls[i]*discount[i]) for i in range(len(discount))]
 
     @staticmethod
-    def calc_time_working(ls: list = None):
+    def calc_time_working(ls: list = None) -> int:
         """
         Calculate period of working time
         """

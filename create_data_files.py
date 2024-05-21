@@ -3,6 +3,7 @@ import json
 import os
 import itertools
 import json
+import functools
 
 # Static data from OS and directories for fill info in files
 BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/'
@@ -80,20 +81,16 @@ class GenerateInfoForModels:
         for num in range(len(self.st_data['X_axis'])):
             self.st_data['VOLUME'].append(self.st_data['I'][num] * self.st_data['J'][num] * self.st_data['LAYERS'])
 
-    def generate_info(self):
+    def generate_info(self, methods: dict = dict()):
         """
         Call all functions for fill info about realisations
         """
-        methods = {
-            "func1": self.create_PVT_path(),
-            "func2": self.create_SCH_path(),
-            "func3": self.calculate_NTG(),
-            "func4": self.calculate_axes(),
-            "func5": self.calculate_volume(),
-            "func6": self.calculate_hectare()
-        }
-        for value in methods.values():
-            value
+        for func in dir(self):
+            if func.startswith(('calculate', 'create')):
+                methods[func] = getattr(self, func)
+
+        for func in methods:
+            methods[func]()
 
     def generate_data_files_info(self):
         """
@@ -202,6 +199,7 @@ class GenerateInfoForModels:
                             file.write(line)
 
 test = GenerateInfoForModels(STATIC_DATA)
+
 test.generate_info()
 test.generate_data_files_info()
 test.create_data_files()

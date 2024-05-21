@@ -30,13 +30,9 @@ class ReadResults:
         """
         Calculate volume of gas with CAPEX and hectare
         """
-        COST_ONE_METER = 0.2
-
         dump_datafile = {}
-
         with open('data_from_realisations.txt', 'r') as file:
             dump_datafile = json.load(file)
-
         return num/dump_datafile[case]['Hectare']
 
     @staticmethod
@@ -80,14 +76,23 @@ class ReadResults:
 
                 self.data.setdefault(name, {'GAS': self.discount_volume(temp_res)})
 
-    def create_result_file(self):
+    def create_result_file(self, data: dict = dict()) -> dict:
         """
         Create file with total calculated data
+        Take all parameters from file name
         """
-        with open('result_file.txt', 'w', encoding='utf-8') as file:
-            for key, value in test.data.items():
+        for key, value in test.data.items():
                 case = [i for i in key.split('_') if i != '' ]
-                print(f"{case[1]}={round(self.calc_gas_volume((sum(value['GAS'])), case[1]))}={test.calc_time_working(value['GAS'])}", sep='\n', file=file)
+                data.setdefault(case[1], {
+                    'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[1])), 
+                    'Years': self.calc_time_working(value['GAS']),
+                    'PERM': case[3],
+                    'L': case[5],
+                    'H': case[7],
+                    'C5': case[9],})
+
+        with open('result_file.txt', 'w', encoding='utf-8') as file:
+            file.write(json.dumps(data, indent=4))
 
 test = ReadResults(BASE_RESULT_DIR)
 

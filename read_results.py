@@ -7,12 +7,15 @@ TOTAL_RESULTS = dict()
 
 class ReadResults:
     def __init__(self, path: str, data: dict = {}):
-        self.path = path
+        if isinstance(path, str):
+            self.path = path
+        else:
+            raise TypeError('Path must be a str type')
         self.data = data
 
     @property
     def get_data(self):
-        return self.data
+        return self.__dict__.items()
 
     @staticmethod
     def discount_volume(ls: list = None) -> list:
@@ -31,7 +34,7 @@ class ReadResults:
 
     def read_path(self, all_dirs: set = set()) -> list:
         """
-        Function pick up and collect all files name in directory
+        Function picks up and collects all files name in directory
         """
         for root, dirs, files in os.walk(self.path):
             all_dirs.update(dirs)
@@ -64,9 +67,10 @@ class ReadResults:
                 self.data.setdefault(name, {'GAS': self.discount_volume(temp_res)})
 
 test = ReadResults(BASE_RESULT_DIR)
-test.read_file()
-
-print(test.get_data.keys())
+print(*test.get_data)
+print(test.read_file())
+print(*test.get_data)
 
 for key, value in test.data.items():
-    print(f"{key} === {sum(value['GAS'])} === {test.calc_time_working(value['GAS'])}", sep='\n')
+    case = key.split('_')
+    print(f"{case[1]} === {round(sum(value['GAS']))} === {test.calc_time_working(value['GAS'])}", sep='\n')

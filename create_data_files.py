@@ -88,7 +88,7 @@ class GenerateInfoForModels:
         for value in methods.values():
             value
 
-    def generate_data_files(self):
+    def generate_data_files_info(self):
         """
         Create text file with all realisations data
         """
@@ -97,6 +97,7 @@ class GenerateInfoForModels:
                                                       self.st_data['H'],
                                                       self.st_data['L'],
                                                       self.st_data['C5_plus']):
+            # this type of cycles is slower than classic nested cycles
             num = next(item)
             match len:
                 case 500:
@@ -148,10 +149,19 @@ class GenerateInfoForModels:
         with open(f'{BASE_RESULT_DIR}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(self.dyn_data, indent=4))
 
+    def create_data_files(self):
+        """
+        Copy default data file and replace information
+        """
+        pass
+
 test = GenerateInfoForModels(STATIC_DATA)
 test.generate_info()
-test.generate_data_files()
-# print(test.data) 
+test.generate_data_files_info()
+
+# 1. Add length 0 meters in L list
+# 2. Calculate Q/hectare/CAPEX column
+# 3. Copy and replace info function
 
 # # Replace all needed info in new file
 # with open("E:\ml_models\ALL_CASES\CASES\\test_temp.data", 'r', encoding='utf-8') as file_temp:

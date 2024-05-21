@@ -1,4 +1,5 @@
 import os
+import json
 
 # Put in your RESULT directory
 BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/_DATA/RESULTS'
@@ -24,6 +25,19 @@ class ReadResults:
         """
         discount = [(1/pow(1+0.14, year)) for year in range(25)]
         return [(ls[i]*discount[i]) for i in range(len(discount))]
+
+    def calc_gas_volume(self, num: int, case: int) -> int:
+        """
+        Calculate volume of gas with CAPEX and hectare
+        """
+        COST_ONE_METER = 0.2
+
+        dump_datafile = {}
+
+        with open('data_from_realisations.txt', 'r') as file:
+            dump_datafile = json.load(file)
+
+        return num/dump_datafile[case]['Hectare']
 
     @staticmethod
     def calc_time_working(ls: list = None) -> int:
@@ -66,11 +80,16 @@ class ReadResults:
 
                 self.data.setdefault(name, {'GAS': self.discount_volume(temp_res)})
 
-test = ReadResults(BASE_RESULT_DIR)
-print(*test.get_data)
-print(test.read_file())
-print(*test.get_data)
+    def create_result_file(self):
+        """
+        Create file with total calculated data
+        """
+        with open('result_file.txt', 'w', encoding='utf-8') as file:
+            for key, value in test.data.items():
+                case = [i for i in key.split('_') if i != '' ]
+                print(f"{case[1]}={round(self.calc_gas_volume((sum(value['GAS'])), case[1]))}={test.calc_time_working(value['GAS'])}", sep='\n', file=file)
 
-for key, value in test.data.items():
-    case = key.split('_')
-    print(f"{case[1]} === {round(sum(value['GAS']))} === {test.calc_time_working(value['GAS'])}", sep='\n')
+test = ReadResults(BASE_RESULT_DIR)
+
+test.read_file()
+test.create_result_file()

@@ -50,6 +50,12 @@ class GenerateInfoForModels:
         """
         self.st_data["NTG"] = [round(i/(self.st_data['LAYERS']*self.st_data['Z']), 5) for i in self.st_data['H']]
 
+    def calculate_hectare(self):
+        """
+        Calculate hectare square
+        """
+        self.st_data["Hectare"] = [(self.st_data['I'][num] * self.st_data['J'][num] / 100) for num in range(len(self.st_data['L']))]
+
     def calculate_axes(self):
         """
         Calculate dimensional for new models
@@ -83,7 +89,8 @@ class GenerateInfoForModels:
             "func2": self.create_SCH_path(),
             "func3": self.calculate_NTG(),
             "func4": self.calculate_axes(),
-            "func5": self.calculate_volume()
+            "func5": self.calculate_volume(),
+            "func6": self.calculate_hectare()
         }
         for value in methods.values():
             value
@@ -103,6 +110,7 @@ class GenerateInfoForModels:
                 case 500:
                     self.dyn_data.setdefault(num, {'I': self.st_data['I'][0],
                                                    'J': self.st_data['J'][0],
+                                                   'Hectare': self.st_data['Hectare'][0],
                                                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
                                                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                                                    'PERM': perm,
@@ -112,6 +120,7 @@ class GenerateInfoForModels:
                 case 1000:
                     self.dyn_data.setdefault(num, {'I': self.st_data['I'][1],
                                                    'J': self.st_data['J'][1],
+                                                   'Hectare': self.st_data['Hectare'][1],
                                                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
                                                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                                                    'PERM': perm,
@@ -121,6 +130,7 @@ class GenerateInfoForModels:
                 case 1500:
                     self.dyn_data.setdefault(num, {'I': self.st_data['I'][2],
                                                    'J': self.st_data['J'][2],
+                                                   'Hectare': self.st_data['Hectare'][2],
                                                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
                                                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                                                    'PERM': perm,
@@ -130,6 +140,7 @@ class GenerateInfoForModels:
                 case 2000:
                     self.dyn_data.setdefault(num, {'I': self.st_data['I'][3],
                                                    'J': self.st_data['J'][3],
+                                                   'Hectare': self.st_data['Hectare'][3],
                                                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
                                                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                                                    'PERM': perm,
@@ -139,6 +150,7 @@ class GenerateInfoForModels:
                 case 2500:
                     self.dyn_data.setdefault(num, {'I': self.st_data['I'][4],
                                                    'J': self.st_data['J'][4],
+                                                   'Hectare': self.st_data['Hectare'][4],
                                                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
                                                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                                                    'PERM': perm,
@@ -158,6 +170,8 @@ class GenerateInfoForModels:
 test = GenerateInfoForModels(STATIC_DATA)
 test.generate_info()
 test.generate_data_files_info()
+print(test.calculate_hectare())
+print(test.st_data['Hectare'])
 
 # 1. Add length 0 meters in L list
 # 2. Calculate Q/hectare/CAPEX column

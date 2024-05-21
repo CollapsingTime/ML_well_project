@@ -1,9 +1,6 @@
-import shutil
 import json
 import os
 import itertools
-import json
-import functools
 
 # Static data from OS and directories for fill info in files
 BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/'
@@ -97,79 +94,33 @@ class GenerateInfoForModels:
         Create text file with all realisations data
         """
         item = itertools.count(1)
+        data_mapping = {
+            0: {'index': 0},
+            500: {'index': 1},
+            1000: {'index': 2},
+            1500: {'index': 3},
+            2000: {'index': 4},
+            2500: {'index': 5}
+        }
+
         for perm, thick, len, c5 in itertools.product(self.st_data['PERM'],
                                                       self.st_data['H'],
                                                       self.st_data['L'],
                                                       self.st_data['C5_plus']):
-            # this type of cycles is slower than classic nested cycles
             num = next(item)
-            match len:
-                case 0:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][0],
-                                                   'J': self.st_data['J'][0],
-                                                   'Hectare': self.st_data['Hectare'][0],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
-                case 500:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][0],
-                                                   'J': self.st_data['J'][0],
-                                                   'Hectare': self.st_data['Hectare'][0],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
-                case 1000:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][1],
-                                                   'J': self.st_data['J'][1],
-                                                   'Hectare': self.st_data['Hectare'][1],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
-                case 1500:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][2],
-                                                   'J': self.st_data['J'][2],
-                                                   'Hectare': self.st_data['Hectare'][2],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
-                case 2000:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][3],
-                                                   'J': self.st_data['J'][3],
-                                                   'Hectare': self.st_data['Hectare'][3],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
-                case 2500:
-                    self.dyn_data.setdefault(num, {'I': self.st_data['I'][4],
-                                                   'J': self.st_data['J'][4],
-                                                   'Hectare': self.st_data['Hectare'][4],
-                                                   'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
-                                                   'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                                                   'PERM': perm,
-                                                   'H': thick,
-                                                   'L': len,
-                                                   'C5_plus': c5,
-                                                   'NTG': thick/32,})
+            case_data = data_mapping.get(len)
+            if case_data:
+                self.dyn_data.setdefault(num, {
+                    'I': self.st_data['I'][case_data['index']],
+                    'J': self.st_data['J'][case_data['index']],
+                    'Hectare': self.st_data['Hectare'][case_data['index']],
+                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
+                    'PERM': perm,
+                    'H': thick,
+                    'L': len,
+                    'C5_plus': c5,
+                    'NTG': thick/32})                   
 
         with open(f'{BASE_RESULT_DIR}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(self.dyn_data, indent=4))

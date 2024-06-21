@@ -28,7 +28,7 @@ class ReadResults:
         """
         Create a discount volume from production
         """
-        discount = [(1/pow(1+0.14, year)) for year in range(25)]
+        discount = [(1/pow(1+0.14, year)) for year in range(10)]
         return [(ls[i]*discount[i]) for i in range(len(discount))]
 
     def calc_gas_volume(self, num: int, case: int) -> int:
@@ -59,6 +59,9 @@ class ReadResults:
         return result_dirs
     
     def create_only_result_dir(self):
+        """
+        Function creates a path for only results file
+        """
         if not os.path.exists(self.result_path):
             os.makedirs(self.result_path)
 
@@ -74,9 +77,9 @@ class ReadResults:
         Function can reading all result.log files in all dirs
         """
         file_names = self.read_result_path()
-        
-        for name in file_names:
-            with open(f"{BASE_RESULT_DIR}/{name}/result.log", 'r', encoding='utf-8') as file:
+        print(file_names)
+        for case, dir in file_names.items():
+            with open(f"{BASE_RESULT_DIR}/{dir}/result.log", 'r', encoding='utf-8') as file:
                 count = 0
                 temp_res = [None for _ in range(25)]
                 temp_data = []
@@ -93,17 +96,18 @@ class ReadResults:
                     temp_res[count] = sum(temp_data[num:num+12])
                     count += 1
 
-                self.data.setdefault(name, {'GAS': self.discount_volume(temp_res)})
+                self.data.setdefault(dir, {'GAS': self.discount_volume(temp_res)})
 
-    def create_result_file(self, data: dict = dict()) -> dict:
+    def create_result_file(self, data_result: dict = dict()) -> dict:
         """
         Create file with total calculated data
         Take all parameters from file name
         """
         for key, value in test.data.items():
                 case = [i for i in key.split('_') if i != '' ]
-                data.setdefault(case[1], {
-                    'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[1])), 
+                print(case)
+                data_result.setdefault(case[0], {
+                    'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[0])), 
                     'Years': self.calc_time_working(value['GAS']),
                     'PERM': case[3],
                     'L': case[5],
@@ -111,12 +115,12 @@ class ReadResults:
                     'C5': case[9],})
 
         with open('result_file.txt', 'w', encoding='utf-8') as file:
-            file.write(json.dumps(data, indent=4))
+            file.write(json.dumps(data_result, indent=4))
 
 test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
 
-# print(test.read_result_path())
-for k, v in test.read_result_path().items():
-    print(f"{k} --- {v}")
-
 test.create_only_result_dir()
+
+test.read_file()
+
+test.create_result_file()

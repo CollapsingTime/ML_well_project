@@ -38,7 +38,7 @@ class ReadResults:
     @staticmethod
     def calc_time_working(ls: list = None) -> int:
         """
-        Calculate period of working time
+        Calculate period of working time (in years)
         """
         return len(list(filter(lambda x: x > 0, ls)))
 

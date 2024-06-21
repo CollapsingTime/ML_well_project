@@ -3,18 +3,18 @@ import os
 import itertools
 
 # Static data from OS and directories for fill info in files
-BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/'
-PVT_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/PVT'
-SCH_PATH = '/home/vladislav/data/ML_well_project/_DATA/INCLUDE/SCH'
+BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project'
+PVT_PATH = '/home/vladislav/Data/Backend/ML_well_project/_DATA/INCLUDE/PVT'
+SCH_PATH = '/home/vladislav/Data/Backend/ML_well_project/_DATA/INCLUDE/SCH'
 STATIC_DATA = {
     "BASE_X": 600,
     "BASE_Y": 500,
-    "LAYERS": 80,
+    "LAYERS": 50,
     "Z": 0.4,
-    "PERM": [0.1, 1, 10, 100, 1000],
-    "H": [5, 10, 15, 20, 25],
-    "L": [0, 500, 1000, 1500, 2000, 2500],
-    "C5_plus": [0, 100, 200, 300, 400],
+    "PERM": [0.2, 0.4, 0.6, 0.8] + [i for i in range(1, 10, 2)] + [i for i in range(10, 110, 10)] + [200],
+    "H": [i for i in range(1, 21, 1)],
+    "L": [i for i in range(100, 2100, 100)],
+    "C5_plus": [i for i in range(0, 315, 15) if i != 15],
 }
 class GenerateInfoForModels:
     """
@@ -62,13 +62,16 @@ class GenerateInfoForModels:
         self.st_data['Y_axis'] = []
 
         for num in (self.st_data['X_axis']):
-            if num == self.st_data['X_axis'][0]:
-                self.st_data['Y_axis'].append(int(num/1.7))
-            else:
-                self.st_data['Y_axis'].append(((int(num/1.7)//100)+1)*100)
+            self.st_data['Y_axis'].append(int(num/1.7))
 
         self.st_data['I'] = [int(num/100) for num in self.st_data['X_axis']]
-        self.st_data['J'] = [int(num/100) for num in self.st_data['Y_axis']]
+        self.st_data['J'] = []
+
+        for num in (self.st_data['Y_axis']):
+            if num % 100 >= 45:
+                self.st_data['J'].append((num//100)+1)
+            else:
+                self.st_data['J'].append((num//100))
 
     def calculate_volume(self):
         """
@@ -93,21 +96,16 @@ class GenerateInfoForModels:
         """
         Create text file with all realisations data
         """
-        item = itertools.count(1)
-        data_mapping = {
-            0: {'index': 0},
-            500: {'index': 1},
-            1000: {'index': 2},
-            1500: {'index': 3},
-            2000: {'index': 4},
-            2500: {'index': 5}
-        }
+        item_data = itertools.count(0)
+        item_cycle = itertools.count(1)
+
+        data_mapping = {key:{'index':next(item_data)} for key in STATIC_DATA['L']}
 
         for perm, thick, ln, c5 in itertools.product(self.st_data['PERM'],
                                                       self.st_data['H'],
                                                       self.st_data['L'],
                                                       self.st_data['C5_plus']):
-            num = next(item)
+            num = next(item_cycle)
             case_data = data_mapping.get(ln)
             if case_data:
                 self.dyn_data.setdefault(num, {
@@ -120,7 +118,7 @@ class GenerateInfoForModels:
                     'H': thick,
                     'L': ln,
                     'C5_plus': c5,
-                    'NTG': thick/32})                   
+                    'NTG': thick/20})                   
 
         with open(f'{BASE_RESULT_DIR}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(self.dyn_data, indent=4))
@@ -134,8 +132,8 @@ class GenerateInfoForModels:
             with open('/home/vladislav/data/ML_well_project/_DATA/CASES/test_temp.data', 'r', encoding='utf-8') as file_temp:
                 with open(f"/home/vladislav/data/ML_well_project/_TEMP_DATA/{case}_CASE__PERM_{params['PERM']}__Len_{params['L']}__H_{params['H']}__C5_{params['C5_plus']}.data", 'w', encoding='utf-8') as file:
                     for line in file_temp:
-                        if '17 10 80 /' in line:
-                            file.write(line.replace('17 10 80 /', f"{params['I']} {params['J']} 80 /"))
+                        if '17 10 50 /' in line:
+                            file.write(line.replace('17 10 50 /', f"{params['I']} {params['J']} 50 /"))
                         elif '1 17 1 10' in line:
                             file.write(line.replace('1 17 1 10', f"1 {params['I']} 1 {params['J']}"))
                         elif 'NTG=1' in line:
@@ -153,4 +151,4 @@ test = GenerateInfoForModels(STATIC_DATA)
 
 test.generate_info()
 test.generate_data_files_info()
-test.create_data_files()
+# test.create_data_files()

@@ -1,5 +1,6 @@
 /_DATA
 /_TEMP_DATA
+/_ONLY_RESULTS_FILE
 /.vscode
 /data_from_realisations.txt
 /result_file.txt

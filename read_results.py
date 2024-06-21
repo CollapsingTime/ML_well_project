@@ -2,7 +2,7 @@ import os
 import json
 
 # Put in your RESULT directory
-BASE_RESULT_DIR = '/home/vladislav/data/ML_well_project/_DATA/RESULTS'
+BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project/_DATA/MODEL_DATA'
 
 TOTAL_RESULTS = dict()
 
@@ -42,13 +42,16 @@ class ReadResults:
         """
         return len(list(filter(lambda x: x > 0, ls)))
 
-    def read_path(self, all_dirs: set = set()) -> list:
+    def read_result_path(self, all_dirs: dict = dict()) -> dict:
         """
-        Function picks up and collects all files name in directory
+        Function picks up, collects and sorts all files name in directory
         """
-        for root, dirs, files in os.walk(self.path):
-            all_dirs.update(dirs)
-        return sorted(all_dirs)
+        for dir in next(os.walk(self.path))[1]:
+            case = [num for num in dir.split('_') if num != '']
+            all_dirs.setdefault(int(case[0]), dir)
+
+        result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
+        return result_dirs
     
     def read_file(self, file_names: list = None) -> list:
         """
@@ -96,5 +99,8 @@ class ReadResults:
 
 test = ReadResults(BASE_RESULT_DIR)
 
-test.read_file()
-test.create_result_file()
+# print(test.read_result_path())
+for k, v in test.read_result_path().items():
+    print(f"{k} --- {v}")
+
+# test.create_result_file()

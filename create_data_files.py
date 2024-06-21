@@ -31,7 +31,7 @@ class GenerateInfoForModels:
         self.st_data['PVT_path'] = {}
         for root, dirs, files in os.walk(PVT_PATH):
             for name in files:
-                self.st_data['PVT_path'].setdefault(name, f"{root}/{name}")
+                self.st_data['PVT_path'].setdefault(name, f"{root}\\{name}")
 
     def create_SCH_path(self):
         """
@@ -40,7 +40,7 @@ class GenerateInfoForModels:
         self.st_data['SCH_path'] = {}
         for root, dirs, files in os.walk(SCH_PATH):
             for name in files:
-                self.st_data['SCH_path'].setdefault(name, f"{root}/{name}")
+                self.st_data['SCH_path'].setdefault(name, f"{root}\\{name}")
 
     def calculate_NTG(self):
         """
@@ -103,22 +103,22 @@ class GenerateInfoForModels:
             2500: {'index': 5}
         }
 
-        for perm, thick, len, c5 in itertools.product(self.st_data['PERM'],
+        for perm, thick, ln, c5 in itertools.product(self.st_data['PERM'],
                                                       self.st_data['H'],
                                                       self.st_data['L'],
                                                       self.st_data['C5_plus']):
             num = next(item)
-            case_data = data_mapping.get(len)
+            case_data = data_mapping.get(ln)
             if case_data:
                 self.dyn_data.setdefault(num, {
                     'I': self.st_data['I'][case_data['index']],
                     'J': self.st_data['J'][case_data['index']],
                     'Hectare': self.st_data['Hectare'][case_data['index']],
-                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{len}.inc"],
+                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{ln}.inc"],
                     'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
                     'PERM': perm,
                     'H': thick,
-                    'L': len,
+                    'L': ln,
                     'C5_plus': c5,
                     'NTG': thick/32})                   
 

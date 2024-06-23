@@ -1,8 +1,6 @@
 import os
 import json
 import shutil
-import itertools
-import time
 
 # Put in your RESULT directory
 BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project/_DATA/RESULTS_MODEL_DATA'
@@ -107,20 +105,8 @@ class ReadResults:
         with open('result_file.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(data_result, indent=4))
 
-start = time.perf_counter()
-
 test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
 
 test.create_only_result_dir()
-
 test.read_file()
-
-# print(test.data)
-
 test.create_result_file()
-
-end = time.perf_counter()
-
-print(f"Time: {end-start}")
-
-# 10.675764739000442

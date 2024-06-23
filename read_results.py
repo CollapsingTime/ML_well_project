@@ -1,14 +1,14 @@
 import os
 import json
 import shutil
+import itertools
+import time
 
 # Put in your RESULT directory
 BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project/_DATA/RESULTS_MODEL_DATA'
 
 # Here will be only result file for each path
 ONLY_RESULTS = '/home/vladislav/Data/Backend/ML_well_project/_ONLY_RESULTS_FILE'
-
-TOTAL_RESULTS = dict()
 
 class ReadResults:
     def __init__(self, base_path: str, result_path: str, data: dict = {}):
@@ -72,40 +72,30 @@ class ReadResults:
             dir = f"{self.result_path}/{v}/result.log"
             shutil.copy2(file, dir)
 
-    def read_file(self, file_names: list = None) -> list:
+    def read_file(self) -> list:
         """
         Function can reading all result.log files in all dirs
         """
-        file_names = self.read_result_path()
-        print(file_names)
-        for case, dir in file_names.items():
+        for _, dir in self.read_result_path().items():
             with open(f"{BASE_RESULT_DIR}/{dir}/result.log", 'r', encoding='utf-8') as file:
-                count = 0
-                temp_res = [None for _ in range(25)]
-                temp_data = []
+                data_file, res_data = [], []
                 for line in file:
                     if 'TGP=' in line:
-                        start = line.find(' TGP=')
-                        end = line.find(', TGPH')
-                        temp_data.append(float(line[start+5:end]))
+                        data_file.append(float(line[line.find(' TGP=')+5:line.find(', TGPH')]))
                 
-                for num in range(1, len(temp_data)):
-                    temp_data[-num] = (temp_data[-num]-temp_data[-num-1])
+                for num in range(0, len(data_file)-12, 12):
+                    res_data.append(data_file[num+12] - data_file[num])
 
-                for num in range(1, len(temp_data)-1, 12):
-                    temp_res[count] = sum(temp_data[num:num+12])
-                    count += 1
-
-                self.data.setdefault(dir, {'GAS': self.discount_volume(temp_res)})
+                self.data.setdefault(dir, {
+                    'GAS': self.discount_volume(res_data)})
 
     def create_result_file(self, data_result: dict = dict()) -> dict:
         """
-        Create file with total calculated data
+        Function create file with total calculated data
         Take all parameters from file name
         """
         for key, value in test.data.items():
                 case = [i for i in key.split('_') if i != '' ]
-                print(case)
                 data_result.setdefault(case[0], {
                     'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[0])), 
                     'Years': self.calc_time_working(value['GAS']),
@@ -117,10 +107,20 @@ class ReadResults:
         with open('result_file.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(data_result, indent=4))
 
+start = time.perf_counter()
+
 test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
 
 test.create_only_result_dir()
 
 test.read_file()
 
+# print(test.data)
+
 test.create_result_file()
+
+end = time.perf_counter()
+
+print(f"Time: {end-start}")
+
+# 10.675764739000442

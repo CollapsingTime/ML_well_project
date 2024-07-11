@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_RESULT_DIR = os.environ.get('BASE_RESULT_DIR')
+RESULTS_FROM_MODEL = os.environ.get('RESULTS_FROM_MODEL')
 ONLY_RESULTS = os.environ.get('ONLY_RESULTS')
 
 class ReadResults:
@@ -75,7 +75,7 @@ class ReadResults:
         Function can reading all result.log files in all dirs
         """
         for _, dir in self.read_result_path().items():
-            with open(f"{BASE_RESULT_DIR}/{dir}/result.log", 'r', encoding='utf-8') as file:
+            with open(f"{RESULTS_FROM_MODEL}/{dir}/result.log", 'r', encoding='utf-8') as file:
                 data_file, res_data = [], []
                 for line in file:
                     if 'TGP=' in line:
@@ -105,10 +105,10 @@ class ReadResults:
         with open('result_file.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(data_result, indent=4))
 
-# test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
+# test = ReadResults(RESULTS_FROM_MODEL, ONLY_RESULTS)
 
 # test.create_only_result_dir()
 # test.read_file()
 # test.create_result_file()
 
-print(BASE_RESULT_DIR)
+print(RESULTS_FROM_MODEL)

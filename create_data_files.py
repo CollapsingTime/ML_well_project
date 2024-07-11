@@ -1,11 +1,16 @@
 import json
 import os
 import itertools
+from dotenv import load_dotenv
+import asyncio
 
-# Static data from OS and directories for fill info in files
-BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project'
-PVT_PATH = '/home/vladislav/Data/Backend/ML_well_project/_DATA/INCLUDE/PVT'
-SCH_PATH = '/home/vladislav/Data/Backend/ML_well_project/_DATA/INCLUDE/SCH'
+load_dotenv()
+
+BASE_RESULT_DIR_DATA = os.environ.get('BASE_RESULT_DIR_DATA')
+TEST_CASE = os.environ.get('TEST_CASE')
+TEMP_DATA = os.environ.get('TEMP_DATA')
+PVT_PATH = os.environ.get('PVT_PATH')
+SCH_PATH = os.environ.get('SCH_PATH')
 STATIC_DATA = {
     "BASE_X": 600,
     "BASE_Y": 500,
@@ -16,6 +21,7 @@ STATIC_DATA = {
     "L": [i for i in range(100, 2100, 100)],
     "C5_plus": [i for i in range(0, 315, 15) if i != 15],
 }
+
 class GenerateInfoForModels:
     """
     Generate info for DATA files
@@ -120,35 +126,44 @@ class GenerateInfoForModels:
                     'C5_plus': c5,
                     'NTG': thick/20})                   
 
-        with open(f'{BASE_RESULT_DIR}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
+        with open(f'{BASE_RESULT_DIR_DATA}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(self.dyn_data, indent=4))
 
-    def create_data_files(self):
+    async def generate_data_files(self, case, params):
         """
         Copy default data file and replace information
         """
-        for case, params in self.dyn_data.items():
-            # print(f"case {case}, params {params}")
-            with open('/home/vladislav/data/ML_well_project/_DATA/CASES/test_temp.data', 'r', encoding='utf-8') as file_temp:
-                with open(f"/home/vladislav/data/ML_well_project/_TEMP_DATA/{case}_CASE__PERM_{params['PERM']}__Len_{params['L']}__H_{params['H']}__C5_{params['C5_plus']}.data", 'w', encoding='utf-8') as file:
-                    for line in file_temp:
-                        if '17 10 50 /' in line:
-                            file.write(line.replace('17 10 50 /', f"{params['I']} {params['J']} 50 /"))
-                        elif '1 17 1 10' in line:
-                            file.write(line.replace('1 17 1 10', f"1 {params['I']} 1 {params['J']}"))
-                        elif 'NTG=1' in line:
-                            file.write(line.replace('NTG=1', f"NTG={params['NTG']}"))
-                        elif 'PERMX=0.1' in line:
-                            file.write(line.replace('PERMX=0.1', f"PERMX={params['PERM']}"))
-                        elif 'INCLUDE/PVT/MODEL_PROPS_0.inc' in line:
-                            file.write(line.replace('INCLUDE/PVT/MODEL_PROPS_0.inc', f"{params['C5+_path']}"))
-                        elif 'INCLUDE/SCH/MODEL_SCHEDULE_500.inc' in line:
-                            file.write(line.replace('INCLUDE/SCH/MODEL_SCHEDULE_500.inc', f"{params['Well_path']}"))
-                        else:
-                            file.write(line)
 
-test = GenerateInfoForModels(STATIC_DATA)
+        with open(f"{TEST_CASE}", 'r', encoding='utf-8') as file_temp:
+            with open(f"{TEMP_DATA}/{case}_CASE__PERM_{params['PERM']}__Len_{params['L']}__H_{params['H']}__C5_{params['C5_plus']}.data", 'w', encoding='utf-8') as file:
+                for line in file_temp:
+                    if '17 10 50 /' in line:
+                        file.write(line.replace('17 10 50 /', f"{params['I']} {params['J']} 50 /"))
+                    elif '1 17 1 10' in line:
+                        file.write(line.replace('1 17 1 10', f"1 {params['I']} 1 {params['J']}"))
+                    elif 'NTG=1' in line:
+                        file.write(line.replace('NTG=1', f"NTG={params['NTG']}"))
+                    elif 'PERMX=0.1' in line:
+                        file.write(line.replace('PERMX=0.1', f"PERMX={params['PERM']}"))
+                    elif 'INCLUDE/PVT/MODEL_PROPS_0.inc' in line:
+                        file.write(line.replace('INCLUDE/PVT/MODEL_PROPS_0.inc', f"{params['C5+_path']}"))
+                    elif 'INCLUDE/SCH/MODEL_SCHEDULE_500.inc' in line:
+                        file.write(line.replace('INCLUDE/SCH/MODEL_SCHEDULE_500.inc', f"{params['Well_path']}"))
+                    else:
+                        file.write(line)
 
-test.generate_info()
-test.generate_data_files_info()
-# test.create_data_files()
+class Calculate:
+    def __init__(self):
+        self.data = GenerateInfoForModels(STATIC_DATA)
+
+    def init_data(self):
+        self.data.generate_info()
+        self.data.generate_data_files_info()
+
+    async def run(self):
+        tasks = [asyncio.create_task(self.data.generate_data_files(case, params)) for case, params in self.data.dyn_data.items()]
+        await asyncio.gather(*tasks)
+
+result = Calculate()
+result.init_data()
+asyncio.run(result.run())

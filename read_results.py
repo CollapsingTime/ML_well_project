@@ -1,12 +1,12 @@
 import os
 import json
 import shutil
+from dotenv import load_dotenv
 
-# Put in your RESULT directory
-BASE_RESULT_DIR = '/home/vladislav/Data/Backend/ML_well_project/_DATA/RESULTS_MODEL_DATA'
+load_dotenv()
 
-# Here will be only result file for each path
-ONLY_RESULTS = '/home/vladislav/Data/Backend/ML_well_project/_ONLY_RESULTS_FILE'
+BASE_RESULT_DIR = os.environ.get('BASE_RESULT_DIR')
+ONLY_RESULTS = os.environ.get('ONLY_RESULTS')
 
 class ReadResults:
     def __init__(self, base_path: str, result_path: str, data: dict = {}):
@@ -92,7 +92,7 @@ class ReadResults:
         Function create file with total calculated data
         Take all parameters from file name
         """
-        for key, value in test.data.items():
+        for key, value in self.data.items():
                 case = [i for i in key.split('_') if i != '' ]
                 data_result.setdefault(case[0], {
                     'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[0])), 
@@ -105,8 +105,10 @@ class ReadResults:
         with open('result_file.txt', 'w', encoding='utf-8') as file:
             file.write(json.dumps(data_result, indent=4))
 
-test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
+# test = ReadResults(BASE_RESULT_DIR, ONLY_RESULTS)
 
-test.create_only_result_dir()
-test.read_file()
-test.create_result_file()
+# test.create_only_result_dir()
+# test.read_file()
+# test.create_result_file()
+
+print(BASE_RESULT_DIR)

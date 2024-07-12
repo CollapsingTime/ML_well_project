@@ -2,24 +2,45 @@ import os
 import json
 import shutil
 from dotenv import load_dotenv
+import asyncio
+import aiofiles
+import aiocsv
+import csv
+import time, functools
 
 load_dotenv()
 
 RESULTS_FROM_MODEL = os.environ.get('RESULTS_FROM_MODEL')
+BASE_RESULT_DIR_DATA = os.environ.get('BASE_RESULT_DIR_DATA')
 ONLY_RESULTS = os.environ.get('ONLY_RESULTS')
 
 class ReadResults:
-    def __init__(self, base_path: str, result_path: str, data: dict = {}):
+    def __init__(self, base_path: str, result_path: str, data: dict = {}, data_result: dict = {}):
         if isinstance(base_path, str) and isinstance(result_path, str):
             self.base_path = base_path
             self.result_path = result_path
         else:
             raise TypeError('Path must be a str type')
         self.data = data
+        self.data_result = data_result
 
     @property
     def get_data(self):
         return self.__dict__.items()
+
+    @staticmethod
+    def timer(func: None) -> str:
+        """
+        Function analysis timer
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            value = func(*args, **kwargs)
+            end = time.perf_counter()
+            print(f"Time for {func.__name__}: {end-start} seconds")
+            return value
+        return wrapper
 
     @staticmethod
     def discount_volume(ls: list = None) -> list:
@@ -34,7 +55,7 @@ class ReadResults:
         Calculate volume of gas with CAPEX and hectare
         """
         dump_datafile = {}
-        with open('/home/vladislav/Data/Backend/ML_well_project/data_from_realisations.txt', 'r') as file:
+        with open(f'{BASE_RESULT_DIR_DATA}/data_from_realisations.txt', 'r') as file:
             dump_datafile = json.load(file)
         return num/dump_datafile[case]['Hectare']
 
@@ -56,6 +77,7 @@ class ReadResults:
         result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
         return result_dirs
     
+    @timer
     def create_only_result_dir(self):
         """
         Function creates a path for only results file
@@ -70,6 +92,7 @@ class ReadResults:
             dir = f"{self.result_path}/{v}/result.log"
             shutil.copy2(file, dir)
 
+    @timer
     def read_file(self) -> list:
         """
         Function can reading all result.log files in all dirs
@@ -87,14 +110,14 @@ class ReadResults:
                 self.data.setdefault(dir, {
                     'GAS': self.discount_volume(res_data)})
 
-    def create_result_file(self, data_result: dict = dict()) -> dict:
+    @timer
+    async def create_result_data(self, key, value, data_result: dict = dict()) -> dict:
         """
         Function create file with total calculated data
         Take all parameters from file name
         """
-        for key, value in self.data.items():
-                case = [i for i in key.split('_') if i != '' ]
-                data_result.setdefault(case[0], {
+        case = [i for i in key.split('_') if i != '' ]
+        self.data_result.setdefault(case[0], {
                     'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[0])), 
                     'Years': self.calc_time_working(value['GAS']),
                     'PERM': case[3],
@@ -102,13 +125,31 @@ class ReadResults:
                     'H': case[7],
                     'C5': case[9],})
 
-        with open('result_file.txt', 'w', encoding='utf-8') as file:
-            file.write(json.dumps(data_result, indent=4))
+    @timer
+    def create_result_file(self) -> None:
+        """
+        Function create file with total calculated data
+        Take all parameters from file name
+        """
+        with open('result_file.csv', 'w', encoding='utf-8', newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=['id', 'Gas', 'Years', 'PERM', 'L', 'H', 'C5'])
+            writer.writeheader()
+            for key, value in self.data_result.items():
+                row = {'id': key}
+                row.update(value)
+                writer.writerow(row)
 
-# test = ReadResults(RESULTS_FROM_MODEL, ONLY_RESULTS)
+class Calculate:
+    def __init__(self):
+        self.results = ReadResults(RESULTS_FROM_MODEL, ONLY_RESULTS)
 
-# test.create_only_result_dir()
-# test.read_file()
-# test.create_result_file()
+    async def run(self):
+        self.results.create_only_result_dir()
+        self.results.read_file()
+        tasks = [asyncio.create_task(self.results.create_result_data(key, value)) for key, value in self.results.data.items()]
+        await asyncio.gather(*tasks)
+        self.results.create_result_file()
 
-print(RESULTS_FROM_MODEL)
+result = Calculate()
+
+asyncio.run(result.run())

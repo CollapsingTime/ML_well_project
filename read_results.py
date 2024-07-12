@@ -76,7 +76,7 @@ class ReadResults:
         self.result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
     
     @timer
-    def create_only_result_dir(self):
+    def create_only_result_dir(self) -> None:
         """
         Function creates a path for only results file
         """
@@ -135,6 +135,7 @@ class ReadResults:
                 row = {'id': key}
                 row.update(value)
                 writer.writerow(row)
+
 class Calculate:
     def __init__(self):
         self.results = ReadResults(RESULTS_FROM_MODEL, ONLY_RESULTS)

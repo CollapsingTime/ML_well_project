@@ -3,8 +3,8 @@ import json
 import shutil
 import csv
 import time, functools
-from dotenv import load_dotenv
 import asyncio
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ BASE_RESULT_DIR_DATA = os.environ.get('BASE_RESULT_DIR_DATA')
 ONLY_RESULTS = os.environ.get('ONLY_RESULTS')
 
 class ReadResults:
-    def __init__(self, base_path: str, result_path: str, data: dict = {}, data_result: dict = {}):
+    def __init__(self, base_path: str, result_path: str, data: dict = {}, data_result: dict = {}, result_dirs: dict = {}):
         if isinstance(base_path, str) and isinstance(result_path, str):
             self.base_path = base_path
             self.result_path = result_path
@@ -21,6 +21,7 @@ class ReadResults:
             raise TypeError('Path must be a str type')
         self.data = data
         self.data_result = data_result
+        self.result_dirs = result_dirs
 
     @property
     def get_data(self):
@@ -72,8 +73,7 @@ class ReadResults:
             case = [num for num in dir.split('_') if num != '']
             all_dirs.setdefault(int(case[0]), dir)
 
-        result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
-        return result_dirs
+        self.result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
     
     @timer
     def create_only_result_dir(self):
@@ -83,7 +83,7 @@ class ReadResults:
         if not os.path.exists(self.result_path):
             os.makedirs(self.result_path)
 
-        for k, v in self.read_result_path().items():
+        for k, v in self.result_dirs.items():
             if not os.path.exists(f"{self.result_path}/{v}"):
                 os.makedirs(f"{self.result_path}/{v}")
             file = f"{self.base_path}/{v}/result.log"
@@ -91,25 +91,24 @@ class ReadResults:
             shutil.copy2(file, dir)
 
     @timer
-    def read_file(self) -> list:
+    async def read_file(self, dir) -> list:
         """
         Function can reading all result.log files in all dirs
         """
-        for _, dir in self.read_result_path().items():
-            with open(f"{RESULTS_FROM_MODEL}/{dir}/result.log", 'r', encoding='utf-8') as file:
-                data_file, res_data = [], []
-                for line in file:
-                    if 'TGP=' in line:
-                        data_file.append(float(line[line.find(' TGP=')+5:line.find(', TGPH')]))
+        with open(f"{RESULTS_FROM_MODEL}/{dir}/result.log", 'r', encoding='utf-8') as file:
+            data_file, res_data = [], []
+            for line in file:
+                if 'TGP=' in line:
+                    data_file.append(float(line[line.find(' TGP=')+5:line.find(', TGPH')]))
                 
-                for num in range(0, len(data_file)-12, 12):
-                    res_data.append(data_file[num+12] - data_file[num])
+            for num in range(0, len(data_file)-12, 12):
+                res_data.append(data_file[num+12] - data_file[num])
 
-                self.data.setdefault(dir, {
-                    'GAS': self.discount_volume(res_data)})
+            self.data.setdefault(dir, {
+                'GAS': self.discount_volume(res_data)})
 
     @timer
-    async def create_result_data(self, key, value, data_result: dict = dict()) -> dict:
+    async def create_result_data(self, key, value) -> dict:
         """
         Function create file with total calculated data
         Take all parameters from file name
@@ -136,16 +135,20 @@ class ReadResults:
                 row = {'id': key}
                 row.update(value)
                 writer.writerow(row)
-
 class Calculate:
     def __init__(self):
         self.results = ReadResults(RESULTS_FROM_MODEL, ONLY_RESULTS)
 
     async def run(self):
+        self.results.read_result_path()
         self.results.create_only_result_dir()
-        self.results.read_file()
+
+        tasks_read = [asyncio.create_task(self.results.read_file(dir)) for _, dir in self.results.result_dirs.items()]
+        await asyncio.gather(*tasks_read)
+
         tasks = [asyncio.create_task(self.results.create_result_data(key, value)) for key, value in self.results.data.items()]
         await asyncio.gather(*tasks)
+
         self.results.create_result_file()
 
 result = Calculate()

@@ -65,13 +65,25 @@ class ReadResults:
         """
         return len(list(filter(lambda x: x > 0, ls)))
 
+    # def read_result_path(self, all_dirs: dict = dict()) -> dict:
+    #     """
+    #     Function picks up, collects and sorts all files name in directory
+    #     """
+    #     for dir in next(os.walk(self.base_path))[1]:
+    #         case = [num for num in dir.split('_') if num != '']
+    #         all_dirs.setdefault(int(case[0]), dir)
+
+    #     self.result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
+
     def read_result_path(self, all_dirs: dict = dict()) -> dict:
         """
         Function picks up, collects and sorts all files name in directory
         """
-        for dir in next(os.walk(self.base_path))[1]:
-            case = [num for num in dir.split('_') if num != '']
-            all_dirs.setdefault(int(case[0]), dir)
+        for _, dirs, _ in os.walk(self.base_path):
+            for dir in dirs:
+                case = [num for num in dir.split('_') if num != '']
+                all_dirs.setdefault(int(case[0]), dir)
+            break
 
         self.result_dirs = {k: v for k, v in sorted(all_dirs.items(), key=lambda item: item[0])}
     
@@ -113,7 +125,7 @@ class ReadResults:
         Function create file with total calculated data
         Take all parameters from file name
         """
-        case = [i for i in key.split('_') if i != '' ]
+        case = [i for i in key.split('_') if i != '']
         self.data_result.setdefault(case[0], {
                     'Gas': round(self.calc_gas_volume((sum(value['GAS'])), case[0])), 
                     'Years': self.calc_time_working(value['GAS']),

@@ -1,141 +1,168 @@
 import json
 import os
+import shutil
 import itertools
-from dotenv import load_dotenv
+import functools
+import time
 import asyncio
+from dotenv import load_dotenv
+from random import uniform
+from math import log, exp
 
 load_dotenv()
 
 BASE_RESULT_DIR_DATA = os.environ.get('BASE_RESULT_DIR_DATA')
 TEST_CASE = os.environ.get('TEST_CASE')
-TEMP_DATA = os.environ.get('TEMP_DATA')
+DATA_FILE = os.environ.get('TEMP_DATA')
+
+BASE_PVT_FILE = os.environ.get('BASE_PVT_FILE')
 PVT_PATH = os.environ.get('PVT_PATH')
+
+BASE_SCH_FILE = os.environ.get('BASE_SCH_FILE')
+BASE_WELLTRACK_FILE = os.environ.get('BASE_WELLTRACK_FILE')
 SCH_PATH = os.environ.get('SCH_PATH')
+
 STATIC_DATA = {
     "BASE_X": 600,
     "BASE_Y": 500,
     "LAYERS": 50,
-    "Z": 0.4,
-    "PERM": [0.2, 0.4, 0.6, 0.8] + [i for i in range(1, 10, 2)] + [i for i in range(10, 110, 10)] + [200],
-    "H": [i for i in range(1, 21, 1)],
-    "L": [i for i in range(100, 2100, 100)],
-    "C5_plus": [i for i in range(0, 315, 15) if i != 15],
+    "Z": 0.4
 }
 
 class GenerateInfoForModels:
     """
     Generate info for DATA files
     """
-    def __init__(self, static_data: dict = {}, dynamic_data: dict = {}):
+    def __init__(self, static_data: dict = {}):
         self.st_data = static_data
-        self.dyn_data = dynamic_data
 
-    def create_PVT_path(self):
+    @staticmethod
+    def timer(func: None) -> str:
         """
-        Find PVT path for new models
+        Timer for functions
         """
-        self.st_data['PVT_path'] = {}
-        for root, dirs, files in os.walk(PVT_PATH):
-            for name in files:
-                self.st_data['PVT_path'].setdefault(name, f"{root}\\{name}")
-
-    def create_SCH_path(self):
-        """
-        Find SCH path for new models
-        """
-        self.st_data['SCH_path'] = {}
-        for root, dirs, files in os.walk(SCH_PATH):
-            for name in files:
-                self.st_data['SCH_path'].setdefault(name, f"{root}\\{name}")
-
-    def calculate_NTG(self):
-        """
-        Calculate NTG for new models
-        """
-        self.st_data["NTG"] = [round(i/(self.st_data['LAYERS']*self.st_data['Z']), 5) for i in self.st_data['H']]
-
-    def calculate_hectare(self):
-        """
-        Calculate hectare square
-        """
-        self.st_data["Hectare"] = [(self.st_data['I'][num] * self.st_data['J'][num] / 100) for num in range(len(self.st_data['L']))]
-
-    def calculate_axes(self):
-        """
-        Calculate dimensional for new models
-        """
-        self.st_data['X_axis'] = [(self.st_data['BASE_X']*2+i) for i in self.st_data['L']]
-        self.st_data['Y_axis'] = []
-
-        for num in (self.st_data['X_axis']):
-            self.st_data['Y_axis'].append(int(num/1.7))
-
-        self.st_data['I'] = [int(num/100) for num in self.st_data['X_axis']]
-        self.st_data['J'] = []
-
-        for num in (self.st_data['Y_axis']):
-            if num % 100 >= 45:
-                self.st_data['J'].append((num//100)+1)
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            value = func(*args, **kwargs)
+            end = time.perf_counter()
+            print(f"Time for {func.__name__}: {end-start} seconds")
+            return value
+        return wrapper
+    
+    @timer
+    def clear_dir(self) -> None:
+        ALL_PATHS = [DATA_FILE, PVT_PATH, SCH_PATH]
+        ask = input("If 'YES' - all files will be deleted: ")
+        for path in ALL_PATHS:
+            data_count = {
+                'total_file': itertools.count(1),
+                'total_dir': itertools.count(1)
+            }
+            num_file, num_path = 0, 0
+            if ask.lower() == 'yes':
+                for filename in os.listdir(path):
+                    file_path = os.path.join(path, filename)
+                    try:
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.unlink(file_path)
+                            num_file = next(data_count['total_file'])
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                            num_path = next(data_count['total_file'])
+                    except Exception as e:
+                        print(f'Failed to delete file: {e}')
+                print(f"In dir: {path}\nTotal files delete: {num_file}\nTotal paths delete: {num_path}")
             else:
-                self.st_data['J'].append((num//100))
+                print('All the files stay in the directory')
 
-    def calculate_volume(self):
+    @timer
+    def generate_random_static_file(self) -> None:
         """
-        Calculate models volume
+        Function generates random data for cases
         """
-        self.st_data['VOLUME'] = []
-        for num in range(len(self.st_data['X_axis'])):
-            self.st_data['VOLUME'].append(self.st_data['I'][num] * self.st_data['J'][num] * self.st_data['LAYERS'])
+        for case in range(1, 160_001):
+            h = uniform(1, 20)
+            c5 = uniform(0.1, 400)
+            l = uniform(100, 2100)
+            perm = exp(1)**uniform(log(0.1), log(100))
+            params = {'H': h, 'C5': c5, 'L': l, 'PERM': perm}
+            for k, v in params.items():
+                self.st_data.setdefault(case, {}).setdefault(k, v)
 
-    def generate_info(self, methods: dict = dict()):
+    @timer
+    def update_static_data(self) -> None:
         """
-        Call all functions for fill info about realisations
+        Function updates static data in class
         """
-        for func in dir(self):
-            if func.startswith(('calculate', 'create')):
-                methods[func] = getattr(self, func)
+        for k, v in self.st_data.items():
+            self.st_data.setdefault(k, {}).update({'PVT_PATH': f"{PVT_PATH}\\PVTG_{v['C5']}.inc"})
+            self.st_data.setdefault(k, {}).update({'SCH_PATH': f"{SCH_PATH}\\MODEL_WELLTRACK_{v['L']}.inc"})
+            self.st_data.setdefault(k, {}).update({'NTG': f"{v['H']/STATIC_DATA['LAYERS'] * STATIC_DATA['Z']}"})
 
-        for func in methods:
-            methods[func]()
+            temp_x = int(STATIC_DATA['BASE_X']*2 + v['L'])
+            temp_y = int((STATIC_DATA['BASE_X']*2 + v['L'])/1.7)
 
-    def generate_data_files_info(self):
+            self.st_data.setdefault(k, {}).update({'X_axis': f"{temp_x}"})
+            self.st_data.setdefault(k, {}).update({'Y_axis': f"{temp_y}"})
+            self.st_data.setdefault(k, {}).update({'I': f"{temp_x//100 if temp_x%100 <= 45 else temp_x//100 + 1}"})
+            self.st_data.setdefault(k, {}).update({'J': f"{temp_y//100 if temp_y%100 <= 45 else temp_y//100 + 1}"})
+
+            self.st_data.setdefault(k, {}).update({'Hectare': f"{int(self.st_data[k]['I'])*int(self.st_data[k]['J']) / 100}"})
+
+    @timer
+    def generate_data(self) -> None:
         """
-        Create text file with all realisations data
+        Function starts functions which generate files
         """
-        item_data = itertools.count(0)
-        item_cycle = itertools.count(1)
+        for k, v in self.st_data.items():
+            self.generate_pvt_file(v['C5'])
+            self.generate_sch_file(v['X_axis'], v['Y_axis'], v['L'])
 
-        data_mapping = {key:{'index':next(item_data)} for key in STATIC_DATA['L']}
+    @staticmethod
+    def generate_pvt_file(c5: int) -> None:
+        """
+        Function generates PVT file for each C5+ value
+        """
+        with open(BASE_PVT_FILE, 'r') as file:
+            with open(f"{PVT_PATH}\\PVTG_{c5}.inc", 'w', encoding='utf-8') as new_file:
+                for line in file:
+                    temp = line.split()
+                    temp_1 = None
+                    if len(temp) == 1:
+                        new_file.write(str(*temp)+'\n')
+                    elif len(temp) == 3 or (len(temp) == 4 and temp[-1] == '/'):
+                        temp_1 = ['    '] + ([float(temp[0]) * (c5/150)] + temp[1:] if c5!=0 else temp[1:])
+                    elif len(temp) == 4 and temp[-1] == '/':
+                        temp_1 = [temp[0]] + ([float(temp[1] * (c5/150))] + temp[2:] if c5!=0 else temp[2:])
+                    if temp_1 is not None:
+                        new_file.write(" ".join(str(num) for num in temp_1)+'\n')
 
-        for perm, thick, ln, c5 in itertools.product(self.st_data['PERM'],
-                                                      self.st_data['H'],
-                                                      self.st_data['L'],
-                                                      self.st_data['C5_plus']):
-            num = next(item_cycle)
-            case_data = data_mapping.get(ln)
-            if case_data:
-                self.dyn_data.setdefault(num, {
-                    'I': self.st_data['I'][case_data['index']],
-                    'J': self.st_data['J'][case_data['index']],
-                    'Hectare': self.st_data['Hectare'][case_data['index']],
-                    'Well_path': self.st_data["SCH_path"][f"MODEL_SCHEDULE_{ln}.inc"],
-                    'C5+_path': self.st_data["PVT_path"][f"MODEL_PROPS_{c5}.inc"],
-                    'PERM': perm,
-                    'H': thick,
-                    'L': ln,
-                    'C5_plus': c5,
-                    'NTG': thick/20})                   
-
-        with open(f'{BASE_RESULT_DIR_DATA}/data_from_realisations.txt', 'w', encoding='utf-8') as file:
-            file.write(json.dumps(self.dyn_data, indent=4))
-
+    @staticmethod
+    def generate_sch_file(I: int, J: int, l: int) -> None:
+        """
+        Function generates welltrack for each well length
+        """
+        with open(BASE_WELLTRACK_FILE, 'r') as file:
+            with open(f"{SCH_PATH}\\MODEL_WELLTRACK_{l}.inc", 'w', encoding='utf-8') as new_file:
+                x1 = int(I) - STATIC_DATA['BASE_X']
+                y1 = int(J) / 2
+                for line in file:
+                    temp = line.split()
+                    if len(temp) == 4:
+                        temp[0], temp[1] = x1, y1
+                    elif len(temp) == 5:
+                        temp[0], temp[1], temp[3] = x1 - l, y1, 2650 + l
+                    new_file.write(" ".join(str(num) for num in temp)+'\n')
+    
     async def generate_data_files(self, case, params):
         """
-        Copy default data file and replace information
-        """
 
+        Copy default data file and replace information
+
+        """
         with open(f"{TEST_CASE}", 'r', encoding='utf-8') as file_temp:
-            with open(f"{TEMP_DATA}/{case}_CASE__PERM_{params['PERM']}__Len_{params['L']}__H_{params['H']}__C5_{params['C5_plus']}.data", 'w', encoding='utf-8') as file:
+            with open(f"{BASE_RESULT_DIR_DATA}\\DATAFILES\\{case}_CASE__PERM_{int(params['PERM'])}__Len_{int(params['L'])}__H_{int(params['H'])}__C5_{int(params['C5'])}.data", 'w', encoding='utf-8') as file:
                 for line in file_temp:
                     if '17 10 50 /' in line:
                         file.write(line.replace('17 10 50 /', f"{params['I']} {params['J']} 50 /"))
@@ -145,25 +172,31 @@ class GenerateInfoForModels:
                         file.write(line.replace('NTG=1', f"NTG={params['NTG']}"))
                     elif 'PERMX=0.1' in line:
                         file.write(line.replace('PERMX=0.1', f"PERMX={params['PERM']}"))
-                    elif 'INCLUDE/PVT/MODEL_PROPS_0.inc' in line:
-                        file.write(line.replace('INCLUDE/PVT/MODEL_PROPS_0.inc', f"{params['C5+_path']}"))
-                    elif 'INCLUDE/SCH/MODEL_SCHEDULE_500.inc' in line:
-                        file.write(line.replace('INCLUDE/SCH/MODEL_SCHEDULE_500.inc', f"{params['Well_path']}"))
+                    elif "'../INCLUDE/PVT/MODELS/PVTG_30.inc' /" in line:
+                        file.write(line.replace(f"'../INCLUDE/PVT/MODELS/PVTG_30.inc' /", f"{params['PVT_PATH']}"))
+                    elif "'../INCLUDE/SCH/WELLTRACK/MODEL_WELLTRACK_100.inc' /" in line:
+                        file.write(line.replace(f"'../INCLUDE/SCH/WELLTRACK/MODEL_WELLTRACK_100.inc' /", f"{params['SCH_PATH']}"))
                     else:
                         file.write(line)
 
 class Calculate:
     def __init__(self):
-        self.data = GenerateInfoForModels(STATIC_DATA)
+        self.data = GenerateInfoForModels()
+
+    def clear_data(self):
+        self.data.clear_dir()
 
     def init_data(self):
-        self.data.generate_info()
-        self.data.generate_data_files_info()
+        self.data.generate_random_static_file()
+        self.data.update_static_data()
+        self.data.generate_data()
 
     async def run(self):
-        tasks = [asyncio.create_task(self.data.generate_data_files(case, params)) for case, params in self.data.dyn_data.items()]
+        tasks = [asyncio.create_task(self.data.generate_data_files(case, params)) for case, params in self.data.st_data.items()]
         await asyncio.gather(*tasks)
-
+ 
 result = Calculate()
+result.clear_data()
 result.init_data()
+
 asyncio.run(result.run())
